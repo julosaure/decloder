@@ -37,13 +37,32 @@
     )
   )
 
-  
+(defn read-lex-prob [f]
+  (println "Reading lexical probabilities " f)
+  (with-open [rdr (BufferedReader. (FileReader. f))]
+    (loop [line (.readLine rdr)
+           lex_prob_map (transient {})]
+      (if line
+        (let [tab (clojure.string/split line #" ")
+              token_src (first tab)
+              token_trg (second tab)
+              lex_prob (last tab)]
+          (recur (.readLine rdr) (assoc! lex_prob_map [token_src token_trg] (Double. lex_prob)))
+          )
+        (do
+          (println (count lex_prob_map) " lexical probabilities read.")
+          (persistent! lex_prob_map)
+          )
+        )
+      )
+    )
+  )
 
 (defn init-engine []
   (let [voc-src (read-voc VOC_SRC)
-        voc-trg (read-voc VOC_TRG)]
-        ;(read-lex-prob LEX_PROB)
-    ;voc-src
+        voc-trg (read-voc VOC_TRG)
+        lex-prob (read-lex-prob LEX_PROB)]
+    ;lex-prob
   ))
 
 
