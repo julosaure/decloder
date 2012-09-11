@@ -15,7 +15,8 @@
 
 
 (defn -main []
-  (time (decloder.model/init-engine))
+  (let [model (decloder.model/init-engine)]
   ;(read-sentences)
   ;(translate-sentences)
+    )
   )

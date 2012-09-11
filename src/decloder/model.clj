@@ -62,6 +62,7 @@
   (let [voc-src (read-voc VOC_SRC)
         voc-trg (read-voc VOC_TRG)
         lex-prob (read-lex-prob LEX_PROB)]
-    ;lex-prob
+       ;lex-prob
+    {:voc-src voc-src, :voc-trg voc-trg, :lex-prob lex-prob}
   ))
 
