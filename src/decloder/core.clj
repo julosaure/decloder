@@ -28,7 +28,10 @@
               token (second tab)]
           (recur (.readLine rdr) (assoc token_map token token_id))
           )
-        token_map
+        (do
+          (println (count token_map) " tokens read.")
+          token_map
+          )
         )
       )
     )
@@ -40,12 +43,12 @@
   (let [voc-src (read-voc VOC_SRC)
         voc-trg (read-voc VOC_TRG)]
         ;(read-lex-prob LEX_PROB)
-    voc-src
+    ;voc-src
   ))
 
 
 (defn -main []
-  (init-engine)
+  (time (init-engine))
   ;(read-sentences)
   ;(translate-sentences)
   )
