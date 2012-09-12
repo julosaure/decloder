@@ -54,7 +54,7 @@
     (let [src-token (first src-sentence_)]
       (println "Main loop, pos " pos ", token " src-token)
       (if (nil? (stacks pos))
-        (recur src-sentence_  pos (assoc stacks pos (clojure.data.priority-map/priority-map)])
+        (recur src-sentence_  pos (assoc stacks pos (clojure.data.priority-map/priority-map)))
         
         (if (> pos (count src-sentence_))
           stacks
