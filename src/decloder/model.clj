@@ -6,9 +6,9 @@
 
 ;; GLOBALS
 
-(def VOC_SRC "/Users/julien/workspaces/clojure/decloder/data/sentfr/fr-en.trn.src.vcb")
+(def VOC_SRC "/Users/julien/workspaces/clojure/decloder/data/sentfr/fr-en.trn.trg.vcb")
 
-(def VOC_TRG "/Users/julien/workspaces/clojure/decloder/data/sentfr/fr-en.trn.trg.vcb")
+(def VOC_TRG "/Users/julien/workspaces/clojure/decloder/data/sentfr/fr-en.trn.src.vcb")
 
 (def LEX_PROB "/Users/julien/workspaces/clojure/decloder/data/sentfr/fr-en.t3.final.small")
 
@@ -58,11 +58,24 @@
     )
   )
 
+(defn startswith [str pat]
+  (loop [str_ str
+         pat_ pat]
+    (if pat_
+      (if (= (first pat_) (first str_))
+        (recur (rest str_) (rest pat_))
+        false
+        )
+      true
+      )
+    )
+  )
+
 (defn init-engine []
   (let [voc-src (read-voc VOC_SRC)
         voc-trg (read-voc VOC_TRG)
         lex-prob (read-lex-prob LEX_PROB)]
-       ;lex-prob
+    ;(println (sort (filter #(.startsWith (key %) "ann") voc-src)))
     {:voc-src voc-src, :voc-trg voc-trg, :lex-prob lex-prob}
   ))
 
