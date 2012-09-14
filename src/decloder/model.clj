@@ -1,7 +1,9 @@
 (ns decloder.model
   (:require clojure.string)
   (:require clojure.java.io)
-  (:import [java.io BufferedReader FileReader]))
+  (:import [java.io BufferedReader FileReader])
+  (:import [java.lang Math])
+  )
 
 
 ;; GLOBALS
@@ -46,8 +48,9 @@
         (let [tab (clojure.string/split line #" ")
               token_src (first tab)
               token_trg (second tab)
-              lex_prob (last tab)]
-          (recur (.readLine rdr) (assoc! lex_prob_map [token_src token_trg] (Double. lex_prob)))
+              lex_prob (last tab)
+              minus_log_lex_prob (- (Math/log (Double. lex_prob)))]
+          (recur (.readLine rdr) (assoc! lex_prob_map [token_src token_trg] minus_log_lex_prob))
           )
         (do
           (println (count lex_prob_map) " lexical probabilities read.")
