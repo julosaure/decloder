@@ -51,6 +51,21 @@
     )
   )
 
+(defn count-stacks [stacks]
+  (loop [stacks_ stacks
+         msg ""]
+    (if (empty? stacks_)
+      msg
+      (let [first-key (first (sort (keys stacks_)))
+            stack (stacks first-key)
+            msg (str msg " " first-key ":" (count stack))]
+        (recur (dissoc stacks_ first-key) msg)
+        )
+      )
+    )
+  )
+         
+  
 (defn search [model src-sentence]
 
   (loop [src-sentence_ src-sentence
@@ -58,7 +73,7 @@
          stacks {}]
 
     (let [src-token (first src-sentence_)]
-      (println "Main loop, pos " pos ", src-token " src-token ", count(stacks) " (count stacks))
+      (println "Main loop, pos " pos ", src-token " src-token ", count(stacks) " (count-stacks stacks))
       (if (nil? (stacks pos))
         (recur src-sentence_  pos (assoc stacks pos (clojure.data.priority-map/priority-map)))
 
@@ -66,30 +81,36 @@
           (recur (rest src-sentence_) (+ pos 1) stacks)
 
           (if (= 0 (count (filter #(= (first (key %)) src-token) (model :lex-prob))))
-            (recur (rest src-sentence_) (+ pos 1) stacks)
+            (do
+              (println "(model :lex-prob) " (take 5 (model :lex-prob)))
+              (println "count filter 0" (count (filter #(= (first (key %)) src-token) (model :lex-prob))))
+              (recur (rest src-sentence_) (+ pos 1) stacks))
             
             (if (> pos (count src-sentence_))
               stacks
       
               (if (= pos 0)
-                (recur (rest src-sentence_) (+ pos 1)
-                       (assoc stacks 0
-                              (reduce new-hypo (stacks 0)
-                                      (filter #(= (first (key %)) src-token) (model :lex-prob)))))
-                
+                (let [hypos (filter #(= (first (key %)) src-token) (model :lex-prob))
+                      titi (println "(count hypos) " (count hypos))
+                      stack_ (reduce new-hypo (stacks 0) hypos)
+                      tata (println "(count stack_) " (count stack_))]
+                  (recur (rest src-sentence_) (+ pos 1) (assoc stacks 0 stack_)))
+                                             
                 (recur (rest src-sentence_) (+ pos 1) 
                        
                        (loop [stacks_ stacks
                               cur-stack (stacks_ pos)
-                              titi (println "count1 " (count cur-stack))
+                              titi (println "count cur-stack " (count cur-stack))
                               prev-stack-pos 1
-                              prev-stack (stacks_ (- pos prev-stack-pos))]
+                              prev-stack (stacks_ (- pos prev-stack-pos))
+                              titi (println "count prev-stack " (count prev-stack))]
                          
                          (if (= 0 (count prev-stack))
                            (let [prev-stack-pos_ (+ 1 prev-stack-pos)
-                                 prev-stack_ (stacks_ prev-stack-pos_)
-                                 toto (println "recur prev-stack 0")]
-                             (recur stacks_ cur-stack "dd" prev-stack-pos_ prev-stack_)
+                                 prev-stack_ (stacks_ (- pos prev-stack-pos_))
+                                 ];tit (println "count prev-stack " (count prev-stack_))
+                                 ;toto (println "recur prev-stack 0")]
+                             (recur stacks_ cur-stack "dd" prev-stack-pos_ prev-stack_ "dd")
                              )
                            
                            (if (< (count cur-stack) MAX_HYPO_PER_STACK)
@@ -100,7 +121,7 @@
                                (recur (assoc stacks_ pos cur-stack_)
                                       cur-stack_ "dddd"
                                       prev-stack-pos
-                                      (rest prev-stack))
+                                      (rest prev-stack) "dd")
                                )
                              stacks_
                              )

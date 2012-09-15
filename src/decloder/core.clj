@@ -15,7 +15,10 @@
 ;; FUNCTIONS 
 
 (defn read-sentences []
-  "Il y a quelques années , l' astronome français Alfred Vidal-Madjar donnait à l' un de ses ouvrages le joli titre Il pleut des planètes ."
+  ;"Il y a quelques années , l' astronome français Alfred Vidal-Majar donnait à l' un de ses
+                                        ;ouvrages le joli titre Il
+                                        ;pleut des planètes ."
+  "Protests expanded to nearly 20 countries , as demonstrators breached the American Embassy in Tunisia and protesters in Sudan broadened their targets to include Germany and Britain ."
   )
 
 (defn -main []

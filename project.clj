@@ -4,5 +4,5 @@
                  [org.clojure/data.priority-map "0.0.2"]
                  ]
 
-  :jvm-opts ["-Xmx512m"]
+  :jvm-opts ["-Xmx10242m"]
   :main decloder.core)
