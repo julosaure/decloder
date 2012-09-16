@@ -9,7 +9,7 @@
 
 ;; GLOBALS
 
-(def MAX_HYPO_PER_STACK 100)
+(def MAX_HYPO_PER_STACK 1000)
 
 ;; UTILS
 
@@ -21,8 +21,11 @@
   ;(println trg-token)
   ;(println lex-prob)
   ;(println (type pred-hypo))
-  ;(println (:score pred-hypo))
-  (+ lex-prob (:score pred-hypo))
+                                        ;(println (:score pred-hypo))
+  (if (nil? pred-hypo)
+    lex-prob
+    (+ lex-prob (:score pred-hypo))
+    )
   )
 
 (defn new-hypo [stack lex-prob]
@@ -82,8 +85,8 @@
 
           (if (= 0 (count (filter #(= (first (key %)) src-token) (model :lex-prob))))
             (do
-              (println "(model :lex-prob) " (take 5 (model :lex-prob)))
-              (println "count filter 0" (count (filter #(= (first (key %)) src-token) (model :lex-prob))))
+              ;(println "(model :lex-prob) " (take 5 (model :lex-prob)))
+              ;(println "count filter 0" (count (filter #(= (first (key %)) src-token) (model :lex-prob))))
               (recur (rest src-sentence_) (+ pos 1) stacks))
             
             (if (> pos (count src-sentence_))
@@ -105,7 +108,7 @@
                               prev-stack (stacks_ (- pos prev-stack-pos))
                               titi (println "count prev-stack " (count prev-stack))]
                          
-                         (if (= 0 (count prev-stack))
+                         (if (and (not (nil? prev-stack)) (= 0 (count prev-stack)))
                            (let [prev-stack-pos_ (+ 1 prev-stack-pos)
                                  prev-stack_ (stacks_ (- pos prev-stack-pos_))
                                  ];tit (println "count prev-stack " (count prev-stack_))
@@ -115,7 +118,7 @@
                            
                            (if (< (count cur-stack) MAX_HYPO_PER_STACK)
                              (let [toto (println "recur cur-stack > 0, count2 " (count cur-stack))
-                                   top-hypo (key (first prev-stack))
+                                   top-hypo (if (nil? prev-stack) nil (key (first prev-stack)))
                                    cur-stack_ (extend-hypo model cur-stack top-hypo src-token)
                                    tata (println "count3 " (count cur-stack_))]
                                (recur (assoc stacks_ pos cur-stack_)
@@ -188,7 +191,7 @@
         sent-tok-id (tokens-to-ids model sent-tok)]
     (println "Tokenized: " sent-tok)
     (println "Ids: " sent-tok-id)
-    (let [model (filter-src-lex-probs model sent-tok-id)
+    (let [;model (filter-src-lex-probs model sent-tok-id)
           graph (search model sent-tok-id)
           best-path (extract-best-path graph)
           inv-voc-trg (reduce #(assoc %1 (val %2) (key %2)) {} (model :voc-trg))
