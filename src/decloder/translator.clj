@@ -165,14 +165,31 @@
 (defn ids-to-tokens [inv-voc-trg ids]
   (map #(inv-voc-trg %) ids)
   )
-  
+
+(defn filter-src-lex-probs [model sent-tok-ids]
+  (println "Filtering lexical probabilities")
+  (loop [tokens sent-tok-ids
+         new-lex-probs {}]
+    (if (empty? tokens)
+      (do
+        (println (count new-lex-probs) " lex probs remaining.")
+        (assoc model :lex-prob new-lex-probs))
+      (let [fil (filter #(= (first (key %)) (first tokens)) (model :lex-prob))]
+        (println "Filtered " (count fil) " lex probs.")
+        (recur (rest tokens) (merge new-lex-probs fil)) 
+        )
+      )
+    )
+  )
+
 (defn translate-sentence [model sentence]
   (println "Translating: " sentence)
   (let [sent-tok (tokenize-sentence sentence)
         sent-tok-id (tokens-to-ids model sent-tok)]
     (println "Tokenized: " sent-tok)
     (println "Ids: " sent-tok-id)
-    (let [graph (search model sent-tok-id)
+    (let [model (filter-src-lex-probs model sent-tok-id)
+          graph (search model sent-tok-id)
           best-path (extract-best-path graph)
           inv-voc-trg (reduce #(assoc %1 (val %2) (key %2)) {} (model :voc-trg))
           ];tt (println (take 10 inv-voc-trg))]
