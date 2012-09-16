@@ -9,7 +9,7 @@
 
 ;; GLOBALS
 
-(def MAX_HYPO_PER_STACK 1000)
+(def MAX_HYPO_PER_STACK 100)
 
 ;; UTILS
 
@@ -94,9 +94,9 @@
       
               (if (= pos 0)
                 (let [hypos (filter #(= (first (key %)) src-token) (model :lex-prob))
-                      titi (println "(count hypos) " (count hypos))
+                      ;titi (println "(count hypos) " (count hypos))
                       stack_ (reduce new-hypo (stacks 0) hypos)
-                      tata (println "(count stack_) " (count stack_))]
+                      ];tata (println "(count stack_) " (count stack_))]
                   (recur (rest src-sentence_) (+ pos 1) (assoc stacks 0 stack_)))
                                              
                 (recur (rest src-sentence_) (+ pos 1) 
@@ -142,16 +142,26 @@
 
 (defn extract-best-path [graph]
   (let [nb-stacks (count graph)]
-    (loop [cpt (- nb-stacks 1)
-           cur-stack (graph cpt)
-           best-path []]
-      (if (< cpt 0)
-        (map #(:token %) best-path)
-        (recur (- cpt 1) (graph (- cpt 1)) (concat (first cur-stack) best-path))
+    (loop [cpt (- nb-stacks 1)]
+      (let [cur-stack (graph cpt)]
+        (if (= 0 (count cur-stack))
+          (recur (- cpt 1))
+          (loop [hypo (key (first cur-stack))
+                 best-path []]
+            (if (nil? hypo)
+              best-path
+              (do
+                ;(println "c" best-path)
+                ;(println "d" hypo)
+                (recur (:pred hypo) (concat [(:token hypo)] best-path))
+                )
+              )
+            )
+          )
         )
       )
     )
-)
+  )
   
 (defn tokenize-sentence [s]
   (map clojure.string/lower-case
@@ -191,7 +201,7 @@
         sent-tok-id (tokens-to-ids model sent-tok)]
     (println "Tokenized: " sent-tok)
     (println "Ids: " sent-tok-id)
-    (let [;model (filter-src-lex-probs model sent-tok-id)
+    (let [model (filter-src-lex-probs model sent-tok-id)
           graph (search model sent-tok-id)
           best-path (extract-best-path graph)
           inv-voc-trg (reduce #(assoc %1 (val %2) (key %2)) {} (model :voc-trg))
