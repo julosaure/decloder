@@ -17,11 +17,12 @@
 
 ;; FUNCTIONS
 
-(defn score-hypothesis [trg-token lex-prob pred-hypo]
-  ;(println trg-token)
-  ;(println lex-prob)
-  ;(println (type pred-hypo))
-                                        ;(println (:score pred-hypo))
+(defn score-hypothesis [lex-prob pred-hypo]
+  {:pre [(= java.lang.Double (type lex-prob))
+         (>= lex-prob 0)
+         (or (nil? pred-hypo) (= decloder.translator.Hypothesis (type pred-hypo)))]
+   :post [(>= % 0) (>= % lex-prob)]}
+  
   (if (nil? pred-hypo)
     lex-prob
     (+ lex-prob (:score pred-hypo))
@@ -29,16 +30,27 @@
   )
 
 (defn new-hypo [stack lex-prob]
-  ;(println lex-prob)
+  {:pre [(map? stack)
+         (= clojure.lang.MapEntry (type lex-prob))]
+   :post [(map? %)
+          (>= (count %) (count stack))]}
+
   (let [trg-token (key lex-prob)
         lexical-prob (val lex-prob)
         pred (Hypothesis. nil 0 nil)
-        score (score-hypothesis trg-token lexical-prob pred)]
+        score (score-hypothesis lexical-prob pred)]
     (assoc stack (Hypothesis. trg-token score pred) score)
     )
   )
 
 (defn extend-hypo [model stack top-hypo src-token]
+  {:pre [(map? model)
+         (map? stack)
+         (or (nil? top-hypo) (= decloder.translator.Hypothesis (type top-hypo)))
+         (= java.lang.String (type src-token))]
+   :post [(map? %)
+          (>= (count %) (count stack))]}
+  
   (loop [stack_ stack
          ;lex-probs (filter #(= (first (key %)) src-token) (model :lex-prob))
          lex-probs ((model :lex-prob) src-token)
@@ -48,7 +60,7 @@
       (let [lex-prob (first lex-probs)
             trg-token (key lex-prob)
             lexical-prob (val lex-prob)
-            score (score-hypothesis trg-token lexical-prob top-hypo)]
+            score (score-hypothesis lexical-prob top-hypo)]
         (recur (assoc stack_ (Hypothesis. trg-token score top-hypo) score) (rest lex-probs) "dd")
         )
       )

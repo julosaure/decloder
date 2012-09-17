@@ -12,7 +12,7 @@
 
 (def VOC_TRG "/Users/julien/workspaces/clojure/decloder/data/sentfr/fr-en.trn.trg.vcb")
 
-(def LEX_PROB "/Users/julien/workspaces/clojure/decloder/data/sentfr/fr-en.t3.final")
+(def LEX_PROB "/Users/julien/workspaces/clojure/decloder/data/sentfr/fr-en.t3.final.small")
 
 
 ;; UTILS
@@ -20,6 +20,8 @@
 ;; FUNCTIONS 
 
 (defn read-voc [f]
+  {:post [(map? %)]}
+  
   (println "Reading vocabulary " f)
   (with-open [rdr (BufferedReader. (FileReader. f))]
     (loop [line (.readLine rdr)
@@ -40,6 +42,8 @@
   )
 
 (defn read-lex-prob [f]
+  {:post [(map? %)]}
+  
   (println "Reading lexical probabilities " f)
   (with-open [rdr (BufferedReader. (FileReader. f))]
     (loop [i 0
@@ -79,6 +83,8 @@
   )
 
 (defn init-engine []
+  {:post [(map? %)]}
+  
   (let [voc-src (read-voc VOC_SRC)
         voc-trg (read-voc VOC_TRG)
         lex-prob (read-lex-prob LEX_PROB)]
