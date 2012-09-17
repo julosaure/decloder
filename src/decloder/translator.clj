@@ -101,11 +101,7 @@
 
           
             (if (= 0 (count ((model :lex-prob) src-token)))
-              ;(if (= 0 (count (filter #(= (first (key %)) src-token) (model :lex-prob))))
-              (do
-                  ;(println "(model :lex-prob) " (take 5 (model :lex-prob)))
-                  ;(println "count filter 0" (count (filter #(= (first (key %)) src-token) (model :lex-prob))))
-                (recur (rest src-sentence_) (+ pos 1) stacks)) 
+              (recur (rest src-sentence_) (+ pos 1) stacks) 
             
             
               (if (= pos 0)
@@ -165,7 +161,7 @@
           (recur (- cpt 1))
           (loop [hypo (key (first cur-stack))
                  best-path []]
-            (if (nil? hypo)
+            (if (nil? (:pred hypo))
               best-path
               (do
                 ;(println "c" best-path)
