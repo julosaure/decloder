@@ -77,23 +77,25 @@
          stacks {}]
 
     (let [src-token (first src-sentence_)]
-      (println "Main loop, pos " pos ", src-token " src-token ", count(stacks) " (count-stacks stacks))
+      (println "Main loop, pos " pos ", src-token " src-token ", count(stacks) " (count-stacks stacks) "(count src-sentence) " (count src-sentence))
       (if (nil? (stacks pos))
         (recur src-sentence_  pos (assoc stacks pos (clojure.data.priority-map/priority-map)))
 
-        (if (nil? src-token)
-          (recur (rest src-sentence_) (+ pos 1) stacks)
+        (if (>= pos (count src-sentence))
+          stacks
+              
+          (if (nil? src-token)
+            (recur (rest src-sentence_) (+ pos 1) stacks)
 
-          (if (= 0 (count ((model :lex-prob) src-token)))
-          ;(if (= 0 (count (filter #(= (first (key %)) src-token) (model :lex-prob))))
-            (do
-              ;(println "(model :lex-prob) " (take 5 (model :lex-prob)))
-              ;(println "count filter 0" (count (filter #(= (first (key %)) src-token) (model :lex-prob))))
-              (recur (rest src-sentence_) (+ pos 1) stacks)) 
+          
+            (if (= 0 (count ((model :lex-prob) src-token)))
+              ;(if (= 0 (count (filter #(= (first (key %)) src-token) (model :lex-prob))))
+              (do
+                  ;(println "(model :lex-prob) " (take 5 (model :lex-prob)))
+                  ;(println "count filter 0" (count (filter #(= (first (key %)) src-token) (model :lex-prob))))
+                (recur (rest src-sentence_) (+ pos 1) stacks)) 
             
-            (if (> pos (count src-sentence_))
-              stacks
-      
+            
               (if (= pos 0)
                 (let [hypos ((model :lex-prob) src-token)
                       ;hypos (filter #(= (first (key %)) src-token) (model :lex-prob))
