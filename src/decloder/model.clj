@@ -42,7 +42,8 @@
 (defn read-lex-prob [f]
   (println "Reading lexical probabilities " f)
   (with-open [rdr (BufferedReader. (FileReader. f))]
-    (loop [line (.readLine rdr)
+    (loop [i 0
+           line (.readLine rdr)
            lex_prob_map (transient {})]
       (if line
         (let [tab (clojure.string/split line #" ")
@@ -50,10 +51,13 @@
               token_trg (second tab)
               lex_prob (last tab)
               minus_log_lex_prob (- (Math/log (Double. lex_prob)))]
-          (recur (.readLine rdr) (assoc! lex_prob_map [token_src token_trg] minus_log_lex_prob))
+          (if (nil? (lex_prob_map token_src))
+            (recur (+ i 1) (.readLine rdr) (assoc! lex_prob_map token_src {token_trg minus_log_lex_prob}))
+            (recur (+ i 1) (.readLine rdr) (assoc! lex_prob_map token_src (assoc (lex_prob_map token_src) token_trg minus_log_lex_prob)))
+            )
           )
         (do
-          (println (count lex_prob_map) " lexical probabilities read.")
+          (println i " lexical probabilities read for " (count lex_prob_map) " src tokens.")
           (persistent! lex_prob_map)
           )
         )

@@ -30,8 +30,8 @@
 
 (defn new-hypo [stack lex-prob]
   ;(println lex-prob)
-  (let [trg-token (second (key lex-prob))
-        lexical-prob (last lex-prob)
+  (let [trg-token (key lex-prob)
+        lexical-prob (val lex-prob)
         pred (Hypothesis. nil 0 nil)
         score (score-hypothesis trg-token lexical-prob pred)]
     (assoc stack (Hypothesis. trg-token score pred) score)
@@ -40,13 +40,14 @@
 
 (defn extend-hypo [model stack top-hypo src-token]
   (loop [stack_ stack
-         lex-probs (filter #(= (first (key %)) src-token) (model :lex-prob))
+         ;lex-probs (filter #(= (first (key %)) src-token) (model :lex-prob))
+         lex-probs ((model :lex-prob) src-token)
          tata (println "count lex-probs" (count lex-probs))]
     (if (empty? lex-probs)
       stack_
       (let [lex-prob (first lex-probs)
-            trg-token (second (key lex-prob))
-            lexical-prob (last lex-prob)
+            trg-token (key lex-prob)
+            lexical-prob (val lex-prob)
             score (score-hypothesis trg-token lexical-prob top-hypo)]
         (recur (assoc stack_ (Hypothesis. trg-token score top-hypo) score) (rest lex-probs) "dd")
         )
@@ -83,17 +84,19 @@
         (if (nil? src-token)
           (recur (rest src-sentence_) (+ pos 1) stacks)
 
-          (if (= 0 (count (filter #(= (first (key %)) src-token) (model :lex-prob))))
+          (if (= 0 (count ((model :lex-prob) src-token)))
+          ;(if (= 0 (count (filter #(= (first (key %)) src-token) (model :lex-prob))))
             (do
               ;(println "(model :lex-prob) " (take 5 (model :lex-prob)))
               ;(println "count filter 0" (count (filter #(= (first (key %)) src-token) (model :lex-prob))))
-              (recur (rest src-sentence_) (+ pos 1) stacks))
+              (recur (rest src-sentence_) (+ pos 1) stacks)) 
             
             (if (> pos (count src-sentence_))
               stacks
       
               (if (= pos 0)
-                (let [hypos (filter #(= (first (key %)) src-token) (model :lex-prob))
+                (let [hypos ((model :lex-prob) src-token)
+                      ;hypos (filter #(= (first (key %)) src-token) (model :lex-prob))
                       ;titi (println "(count hypos) " (count hypos))
                       stack_ (reduce new-hypo (stacks 0) hypos)
                       ];tata (println "(count stack_) " (count stack_))]
@@ -201,7 +204,7 @@
         sent-tok-id (tokens-to-ids model sent-tok)]
     (println "Tokenized: " sent-tok)
     (println "Ids: " sent-tok-id)
-    (let [model (filter-src-lex-probs model sent-tok-id)
+    (let [;model (filter-src-lex-probs model sent-tok-id)
           graph (search model sent-tok-id)
           best-path (extract-best-path graph)
           inv-voc-trg (reduce #(assoc %1 (val %2) (key %2)) {} (model :voc-trg))
