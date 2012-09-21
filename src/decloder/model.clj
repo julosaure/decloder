@@ -20,21 +20,23 @@
 ;; FUNCTIONS 
 
 (defn read-voc [f]
-  {:post [(map? %)]}
+  {:post [(vector? %)
+          (= true (reduce #(and %1 %2) (map #(map? %) %)))]}
   
   (println "Reading vocabulary " f)
   (with-open [rdr (BufferedReader. (FileReader. f))]
     (loop [line (.readLine rdr)
-           token_map {}]
+           token_id_map {}
+           id_token_map {}]
       (if line
         (let [tab (clojure.string/split line #" ")
               token_id (first tab)
               token (second tab)]
-          (recur (.readLine rdr) (assoc token_map token token_id))
+          (recur (.readLine rdr) (assoc token_id_map token token_id) (assoc id_token_map token_id token))
           )
         (do
-          (println (count token_map) " tokens read.")
-          token_map
+          (println (count token_id_map) " tokens read.")
+          [token_id_map id_token_map]
           )
         )
       )
@@ -85,10 +87,10 @@
 (defn init-engine []
   {:post [(map? %)]}
   
-  (let [voc-src (read-voc VOC_SRC)
-        voc-trg (read-voc VOC_TRG)
+  (let [[voc-src-id voc-id-src] (read-voc VOC_SRC)
+        [voc-trg-id voc-id-trg] (read-voc VOC_TRG)
         lex-prob (read-lex-prob LEX_PROB)]
     ;(println (sort (filter #(.startsWith (key %) "ann") voc-src)))
-    {:voc-src voc-src, :voc-trg voc-trg, :lex-prob lex-prob}
+    {:voc-src-id voc-src-id, :voc-id-src voc-id-src, :voc-trg-id voc-trg-id, :voc-id-trg voc-id-trg, :lex-prob lex-prob}
   ))
 

@@ -3,6 +3,7 @@
   (:require clojure.java.io)
   (:import [java.io BufferedReader FileReader])
   (:require clojure.data.priority-map)
+  (:require decloder.lm)
   )
   
 
@@ -17,28 +18,33 @@
 
 ;; FUNCTIONS
 
-(defn score-hypothesis [lex-prob pred-hypo]
-  {:pre [(= java.lang.Double (type lex-prob))
+(defn score-hypothesis [trg-token lex-prob pred-hypo]
+  {:pre [(string? trg-token)
+         (= java.lang.Double (type lex-prob))
          (>= lex-prob 0)
          (or (nil? pred-hypo) (= decloder.translator.Hypothesis (type pred-hypo)))]
    :post [(>= % 0) (>= % lex-prob)]}
-  
+
   (if (nil? pred-hypo)
     lex-prob
-    (+ lex-prob (:score pred-hypo))
+    (let [n-grams (str trg-token " " (:token pred-hypo))]
+      (println "n-gram to score: " n-grams)
+      (+ lex-prob (:score pred-hypo) (decloder.lm/score-ngrams n-grams))
+      )
     )
   )
 
-(defn new-hypo [stack lex-prob]
+(defn new-hypo [model stack lex-prob]
   {:pre [(map? stack)
          (= clojure.lang.MapEntry (type lex-prob))]
    :post [(map? %)
           (>= (count %) (count stack))]}
 
-  (let [trg-token (key lex-prob)
+  (let [trg-token-id (key lex-prob)
+        trg-token ((model :voc-id-trg) trg-token-id)
         lexical-prob (val lex-prob)
         pred (Hypothesis. nil 0 nil)
-        score (score-hypothesis lexical-prob pred)]
+        score (score-hypothesis trg-token lexical-prob pred)]
     (assoc stack (Hypothesis. trg-token score pred) score)
     )
   )
@@ -50,18 +56,20 @@
          (= java.lang.String (type src-token))]
    :post [(map? %)
           (>= (count %) (count stack))]}
-  
-  (loop [stack_ stack
-         ;lex-probs (filter #(= (first (key %)) src-token) (model :lex-prob))
-         lex-probs ((model :lex-prob) src-token)
-         tata (println "count lex-probs" (count lex-probs))]
-    (if (empty? lex-probs)
-      stack_
-      (let [lex-prob (first lex-probs)
-            trg-token (key lex-prob)
-            lexical-prob (val lex-prob)
-            score (score-hypothesis lexical-prob top-hypo)]
-        (recur (assoc stack_ (Hypothesis. trg-token score top-hypo) score) (rest lex-probs) "dd")
+
+  (let [src-token-id ((model :voc-src-id) src-token)]
+    (loop [stack_ stack
+           lex-probs ((model :lex-prob) src-token-id)
+           tata (println "count lex-probs" (count lex-probs))]
+      (if (empty? lex-probs)
+        stack_
+        (let [lex-prob (first lex-probs)
+              trg-token-id (key lex-prob)
+              lexical-prob (val lex-prob)
+              trg-token ((model :voc-id-trg) trg-token-id)
+              score (score-hypothesis trg-token lexical-prob top-hypo)]
+          (recur (assoc stack_ (Hypothesis. trg-token score top-hypo) score) (rest lex-probs) "dd")
+          )
         )
       )
     )
@@ -88,7 +96,8 @@
          pos 0
          stacks {}]
 
-    (let [src-token (first src-sentence_)]
+    (let [src-token (first src-sentence_)
+          src-token-id ((model :voc-src-id) src-token)]
       (println "Main loop, pos " pos ", src-token " src-token ", count(stacks) " (count-stacks stacks) "(count src-sentence) " (count src-sentence))
       (if (nil? (stacks pos))
         (recur src-sentence_  pos (assoc stacks pos (clojure.data.priority-map/priority-map)))
@@ -100,15 +109,15 @@
             (recur (rest src-sentence_) (+ pos 1) stacks)
 
           
-            (if (= 0 (count ((model :lex-prob) src-token)))
+            (if (= 0 (count ((model :lex-prob) src-token-id)))
               (recur (rest src-sentence_) (+ pos 1) stacks) 
             
             
               (if (= pos 0)
-                (let [hypos ((model :lex-prob) src-token)
+                (let [hypos ((model :lex-prob) src-token-id)
                       ;hypos (filter #(= (first (key %)) src-token) (model :lex-prob))
                       ;titi (println "(count hypos) " (count hypos))
-                      stack_ (reduce new-hypo (stacks 0) hypos)
+                      stack_ (reduce (partial new-hypo model) (stacks 0) hypos)
                       ];tata (println "(count stack_) " (count stack_))]
                   (recur (rest src-sentence_) (+ pos 1) (assoc stacks 0 stack_)))
                                              
@@ -183,7 +192,7 @@
   )
 
 (defn tokens-to-ids [model s]
-  (let [voc-src (model :voc-src)]
+  (let [voc-src (model :voc-src-id)]
     (map #(voc-src %) s)
     )
   )
@@ -211,16 +220,16 @@
 (defn translate-sentence [model sentence]
   (println "Translating: " sentence)
   (let [sent-tok (tokenize-sentence sentence)
-        sent-tok-id (tokens-to-ids model sent-tok)]
+        ];sent-tok-id (tokens-to-ids model sent-tok)]
     (println "Tokenized: " sent-tok)
-    (println "Ids: " sent-tok-id)
+    ;(println "Ids: " sent-tok-id)
     (let [;model (filter-src-lex-probs model sent-tok-id)
-          graph (search model sent-tok-id)
+          graph (search model sent-tok)
           best-path (extract-best-path graph)
-          inv-voc-trg (reduce #(assoc %1 (val %2) (key %2)) {} (model :voc-trg))
+          ;inv-voc-trg (reduce #(assoc %1 (val %2) (key %2)) {} (model :voc-trg))
           ];tt (println (take 10 inv-voc-trg))]
       (println best-path)
-      (println (ids-to-tokens inv-voc-trg best-path))
+      ;(println (ids-to-tokens inv-voc-trg best-path))
       )
     )
   )
