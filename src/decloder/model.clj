@@ -3,6 +3,7 @@
   (:require clojure.java.io)
   (:import [java.io BufferedReader FileReader])
   (:import [java.lang Math])
+  (:require decloder.blm) 
   )
 
 
@@ -12,7 +13,7 @@
 
 (def VOC_TRG "/Users/julien/workspaces/clojure/decloder/data/sentfr/fr-en.trn.trg.vcb")
 
-(def LEX_PROB "/Users/julien/workspaces/clojure/decloder/data/sentfr/fr-en.t3.final.small")
+(def LEX_PROB "/Users/julien/workspaces/clojure/decloder/data/sentfr/fr-en.t3.final")
 
 
 ;; UTILS
@@ -89,8 +90,9 @@
   
   (let [[voc-src-id voc-id-src] (read-voc VOC_SRC)
         [voc-trg-id voc-id-trg] (read-voc VOC_TRG)
-        lex-prob (read-lex-prob LEX_PROB)]
+        lex-prob (read-lex-prob LEX_PROB)
+        lm (decloder.blm/load-lm)]
     ;(println (sort (filter #(.startsWith (key %) "ann") voc-src)))
-    {:voc-src-id voc-src-id, :voc-id-src voc-id-src, :voc-trg-id voc-trg-id, :voc-id-trg voc-id-trg, :lex-prob lex-prob}
+    {:voc-src-id voc-src-id, :voc-id-src voc-id-src, :voc-trg-id voc-trg-id, :voc-id-trg voc-id-trg, :lex-prob lex-prob, :lm lm}
   ))
 

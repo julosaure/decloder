@@ -3,7 +3,7 @@
   (:require clojure.java.io)
   (:import [java.io BufferedReader FileReader])
   (:require clojure.data.priority-map)
-  (:require decloder.lm)
+  (:require decloder.blm)
   )
   
 
@@ -18,7 +18,7 @@
 
 ;; FUNCTIONS
 
-(defn score-hypothesis [trg-token lex-prob pred-hypo]
+(defn score-hypothesis [model trg-token lex-prob pred-hypo]
   {:pre [(string? trg-token)
          (= java.lang.Double (type lex-prob))
          (>= lex-prob 0)
@@ -27,9 +27,10 @@
 
   (if (nil? pred-hypo)
     lex-prob
-    (let [n-grams (str trg-token " " (:token pred-hypo))]
-      (println "n-gram to score: " n-grams)
-      (+ lex-prob (:score pred-hypo) (decloder.lm/score-ngrams n-grams))
+    (let [n-grams (str trg-token " " (:token pred-hypo))
+          lm-score (decloder.blm/score-ngrams (model :lm) n-grams)]
+      ;(println "n-gram to score: " n-grams " -> " lm-score)
+      (+ lex-prob (:score pred-hypo) lm-score)
       )
     )
   )
@@ -44,7 +45,7 @@
         trg-token ((model :voc-id-trg) trg-token-id)
         lexical-prob (val lex-prob)
         pred (Hypothesis. nil 0 nil)
-        score (score-hypothesis trg-token lexical-prob pred)]
+        score (score-hypothesis model trg-token lexical-prob pred)]
     (assoc stack (Hypothesis. trg-token score pred) score)
     )
   )
@@ -60,15 +61,15 @@
   (let [src-token-id ((model :voc-src-id) src-token)]
     (loop [stack_ stack
            lex-probs ((model :lex-prob) src-token-id)
-           tata (println "count lex-probs" (count lex-probs))]
+           ];tata (println "count lex-probs" (count lex-probs))]
       (if (empty? lex-probs)
         stack_
         (let [lex-prob (first lex-probs)
               trg-token-id (key lex-prob)
               lexical-prob (val lex-prob)
               trg-token ((model :voc-id-trg) trg-token-id)
-              score (score-hypothesis trg-token lexical-prob top-hypo)]
-          (recur (assoc stack_ (Hypothesis. trg-token score top-hypo) score) (rest lex-probs) "dd")
+              score (score-hypothesis model trg-token lexical-prob top-hypo)]
+          (recur (assoc stack_ (Hypothesis. trg-token score top-hypo) score) (rest lex-probs))
           )
         )
       )
@@ -125,17 +126,17 @@
                        
                        (loop [stacks_ stacks
                               cur-stack (stacks_ pos)
-                              titi (println "count cur-stack " (count cur-stack))
+                              ;titi (println "count cur-stack " (count cur-stack))
                               prev-stack-pos 1
                               prev-stack (stacks_ (- pos prev-stack-pos))
-                              titi (println "count prev-stack " (count prev-stack))]
+                              ];titi (println "count prev-stack " (count prev-stack))]
                          
                          (if (and (not (nil? prev-stack)) (= 0 (count prev-stack)))
                            (let [prev-stack-pos_ (+ 1 prev-stack-pos)
                                  prev-stack_ (stacks_ (- pos prev-stack-pos_))
                                  ];tit (println "count prev-stack " (count prev-stack_))
                                  ;toto (println "recur prev-stack 0")]
-                             (recur stacks_ cur-stack "dd" prev-stack-pos_ prev-stack_ "dd")
+                             (recur stacks_ cur-stack prev-stack-pos_ prev-stack_)
                              )
                            
                            (if (< (count cur-stack) MAX_HYPO_PER_STACK)
@@ -144,9 +145,9 @@
                                    cur-stack_ (extend-hypo model cur-stack top-hypo src-token)
                                    tata (println "count3 " (count cur-stack_))]
                                (recur (assoc stacks_ pos cur-stack_)
-                                      cur-stack_ "dddd"
+                                      cur-stack_
                                       prev-stack-pos
-                                      (rest prev-stack) "dd")
+                                      (rest prev-stack))
                                )
                              stacks_
                              )
