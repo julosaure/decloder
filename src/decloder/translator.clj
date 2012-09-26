@@ -148,10 +148,10 @@
                              )
                            
                            (if (< (count cur-stack) MAX_HYPO_PER_STACK)
-                             (let [toto (println "recur cur-stack > 0, count2 " (count cur-stack))
+                             (let [_ (println "recur cur-stack > 0, count2 " (count cur-stack))
                                    top-hypo (if (nil? prev-stack) nil (key (first prev-stack)))
                                    cur-stack_ (extend-hypo model cur-stack top-hypo src-token)
-                                   tata (println "count3 " (count cur-stack_))]
+                                   _ (println "count3 " (count cur-stack_))]
                                (recur (assoc stacks_ pos cur-stack_)
                                       cur-stack_
                                       prev-stack-pos
