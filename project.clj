@@ -9,5 +9,5 @@
                  [berkeleylm/berkeleylm "1.1.2"]
                  ]
   
-  :jvm-opts ["-Xmx10242m"]
+  :jvm-opts ["-Dfile.encoding=utf-8" "-Xmx1024m"]
   :main decloder.core)

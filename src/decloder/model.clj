@@ -1,7 +1,7 @@
 (ns decloder.model
   (:require clojure.string)
   (:require clojure.java.io)
-  (:import [java.io BufferedReader FileReader InputStream ObjectInputStream FileInputStream BufferedInputStream])
+  (:import [java.io BufferedReader FileReader InputStream ObjectInputStream FileInputStream BufferedInputStream InputStreamReader ])
   (:import [java.nio.channels Channels])
   (:import [java.util.zip GZIPInputStream])
   (:import [java.lang Math])
@@ -26,7 +26,7 @@
           (= true (reduce #(and %1 %2) (map #(map? %) %)))]}
   
   (println "Reading vocabulary " f)
-  (with-open [rdr (BufferedReader. (FileReader. f))]
+  (with-open [rdr (BufferedReader. (InputStreamReader. (FileInputStream. f) "UTF-8"))]
     (loop [line (.readLine rdr)
            token_id_map {}
            id_token_map {}]
