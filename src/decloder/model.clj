@@ -1,7 +1,9 @@
 (ns decloder.model
   (:require clojure.string)
   (:require clojure.java.io)
-  (:import [java.io BufferedReader FileReader])
+  (:import [java.io BufferedReader FileReader InputStream ObjectInputStream FileInputStream BufferedInputStream])
+  (:import [java.nio.channels Channels])
+  (:import [java.util.zip GZIPInputStream])
   (:import [java.lang Math])
   (:require decloder.blm) 
   )
@@ -13,8 +15,7 @@
 
 (def VOC_TRG "/Users/julien/workspaces/clojure/decloder/data/sentfr/fr-en.trn.trg.vcb")
 
-(def LEX_PROB "/Users/julien/workspaces/clojure/decloder/data/sentfr/fr-en.t3.final")
-
+(def LEX_PROB "/Users/julien/workspaces/clojure/decloder/data/sentfr/fr-en.t3.final.bin")
 
 ;; UTILS
 
@@ -44,10 +45,29 @@
     )
   )
 
-(defn read-lex-prob [f]
+(defn read-lex-prob-bin [f]
+  (let [fis (FileInputStream. f)
+        channel (.getChannel fis)
+        cis (Channels/newInputStream channel)
+        bis (BufferedInputStream. cis)
+        bis (if (= ".gz" (subs f (- (count f) 3))) (GZIPInputStream. bis) bis)
+        ois (ObjectInputStream. bis)
+        unserializedModel (.readObject ois)]
+    (.close ois)
+    (println "Unserialized translation model with " (count unserializedModel) " lexical probabilities.")
+    unserializedModel
+    )
+  )
+   ;  final InputStream fis = getBufferedInputStream(path);
+  ; return path.getName().endsWith(".gz") ? new ObjectInputStream(new GZIPInputStream(fis)) : new ObjectInputStream(fis);      }
+  ;final ObjectInputStream in = openObjIn(path);
+  ;final Object obj = in.readObject();
+  ;                in.close();
+  
+
+(defn read-lex-prob_ [f]
   {:post [(map? %)]}
   
-  (println "Reading lexical probabilities " f)
   (with-open [rdr (BufferedReader. (FileReader. f))]
     (loop [i 0
            line (.readLine rdr)
@@ -69,6 +89,17 @@
           )
         )
       )
+    )
+  )
+
+(defn read-lex-prob [f]
+  {:post [(map? %)]}
+
+  (println "Reading lexical probabilities " f)
+  (if (or (= ".gz" (subs f (- (count f) 3)))
+          (= ".bin" (subs f (- (count f) 4))))
+    (read-lex-prob-bin f)
+    (read-lex-prob_ f)
     )
   )
 
