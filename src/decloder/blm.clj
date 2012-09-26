@@ -14,7 +14,6 @@
 
 (def LM_BIN "/Users/julien/workspaces/xp/europarl/europarl-v7.fr-en.fr.tok.low.se.berk_lmbin")
 
-(def LM nil)
 
 ;; UTILS
 
@@ -22,9 +21,7 @@
 ;; FUNCTIONS
 
 (defn call-lm [lm list-ngrams]
-;  (let [l (Arrays/asList list-ngrams)]
-    (- (.getLogProb lm list-ngrams))
- ;   )
+  (- (.getLogProb lm list-ngrams))
   )
 
 
@@ -39,10 +36,6 @@
          (> (count n-grams) 0)]
    :post [(pos? %)]}
 
-  ;(if (nil? LM)
-  ;  (load-lm)
-  ;  )
-  
   (let [list-n-grams (clojure.string/split n-grams #" ")]
     (call-lm lm list-n-grams)
     )
