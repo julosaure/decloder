@@ -12,7 +12,7 @@
 
 ;(def LM_BIN "/Users/julien/workspaces/clojure/berkeleylm-1.1.2/examples/big_test.binary")
 
-(def LM_BIN "/Users/julien/workspaces/xp/europarl/europarl-v7.fr-en.fr.tok.low.se.berk_lmbin")
+(def LM_BIN "/Users/julien/workspaces/xp/europarl/europarl-v7.fr-en.fr.tok.low.se.n4.wb.berk_lmbin")
 
 
 ;; UTILS

@@ -33,10 +33,18 @@
           ;(println "bi-gram to score: " bi-gram " -> " lm-score)
           (+ lex-prob (* 0.5 (:score pred-hypo)) (* 0.1 lm-score))
           )
-        (let [tri-gram (str (:token (:pred pred-hypo)) " " bi-gram)
-              lm-score (decloder.blm/score-ngrams (model :lm) tri-gram)]
-          ;(println "tri-gram to score: " tri-gram " -> " lm-score)
-          (+ lex-prob (* 0.5 (:score pred-hypo)) (* 0.1 lm-score))
+        (let [tri-gram (str (:token (:pred pred-hypo)) " " bi-gram)]
+          (if (nil? (:pred (:pred pred-hypo)))
+            (let [lm-score (decloder.blm/score-ngrams (model :lm) tri-gram)]
+              ;(println "tri-gram to score: " tri-gram " -> " lm-score)
+              (+ lex-prob (* 0.3 (:score pred-hypo)) (* 0.3 lm-score))
+              )
+            (let [quad-gram (str (:token (:pred (:pred pred-hypo))) " " tri-gram)
+                  lm-score (decloder.blm/score-ngrams (model :lm) quad-gram)]
+              ;(println "4-gram to score: " quad-gram " -> " lm-score)
+              (+ lex-prob (* 0.3 (:score pred-hypo)) (* 0.3 lm-score))
+              )
+            )
           )
         )
       )
