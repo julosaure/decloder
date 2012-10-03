@@ -42,14 +42,7 @@
             (let [quad-gram (str (:token (:pred (:pred pred-hypo))) " " tri-gram)
                   lm-score (decloder.blm/score-ngrams (model :lm) quad-gram)]
               ;(println "4-gram to score: " quad-gram " -> " lm-score)
-              (+ lex-prob (* 0.3 (:score pred-hypo)) (* 0.3 lm-score))
-              )
-            )
-          )
-        )
-      )
-    )
-  )
+              (+ lex-prob (* 0.3 (:score pred-hypo)) (* 0.3 lm-score)))))))))
 
 (defn new-hypo [model stack lex-prob]
   {:pre [(map? stack)
@@ -105,8 +98,38 @@
       )
     )
   )
-         
+
+(defn shave-stack [stack]
+  {:pre [(= clojure.data.priority_map.PersistentPriorityMap (type stack))]
+   :post [(= clojure.data.priority_map.PersistentPriorityMap (type %))]}
+
+  (if (> (count stack) MAX_HYPO_PER_STACK)
+    (let [s1 (take MAX_HYPO_PER_STACK stack)]
+      (reduce #(apply assoc %1 %2) (clojure.data.priority-map/priority-map) s1)) 
+    stack))
+
+(defn search-first-not-empty-prev-stack [stacks pos]
+  {:post [(map? %)]}
   
+  (loop [prev-stack-not-empty-pos 1]
+    (let [prev-stack (stacks (- pos prev-stack-not-empty-pos))]
+      (if (= 0 (count prev-stack))
+        (recur (+ 1 prev-stack-not-empty-pos))
+        prev-stack))))
+        
+(defn extend-stack [stack prev-stack model src-token]
+  {:post [(>= (count %) (count stack))]}
+
+  (loop [stack_ stack
+         prev-stack_ prev-stack]
+    (if (empty? prev-stack_)
+      stack_
+      (let [top-hypo (key (first prev-stack_))
+            stack_ (extend-hypo model stack_ top-hypo src-token)
+            stack_ (shave-stack stack_)]
+        (recur stack_ (rest prev-stack_)))))) 
+
+
 (defn search [model src-sentence]
 
   (loop [src-sentence_ src-sentence
@@ -119,7 +142,8 @@
       (if (nil? (stacks pos))
         (recur src-sentence_  pos (assoc stacks pos (clojure.data.priority-map/priority-map)))
 
-        (if (>= pos (count src-sentence))
+        (if (= 0 (count src-sentence_))
+        ;(if (>= pos (count src-sentence))
           stacks
               
           (if (nil? src-token)
@@ -133,51 +157,18 @@
               (if (= pos 0)
                 (let [hypos ((model :lex-prob) src-token-id)
                       ;hypos (filter #(= (first (key %)) src-token) (model :lex-prob))
-                      ;titi (println "(count hypos) " (count hypos))
+                      ;_ (println "(count fist hypos) " (count hypos))
+                      ;_ (println hypos)
                       stack_ (reduce (partial new-hypo model) (stacks 0) hypos)
                       ];tata (println "(count stack_) " (count stack_))]
                   (recur (rest src-sentence_) (+ pos 1) (assoc stacks 0 stack_)))
-                                             
-                (recur (rest src-sentence_) (+ pos 1) 
-                       
-                       (loop [stacks_ stacks
-                              cur-stack (stacks_ pos)
-                              ;titi (println "count cur-stack " (count cur-stack))
-                              prev-stack-pos 1
-                              prev-stack (stacks_ (- pos prev-stack-pos))
-                              ];titi (println "count prev-stack " (count prev-stack))]
-                         
-                         (if (and (not (nil? prev-stack)) (= 0 (count prev-stack)))
-                           (let [prev-stack-pos_ (+ 1 prev-stack-pos)
-                                 prev-stack_ (stacks_ (- pos prev-stack-pos_))
-                                 ];tit (println "count prev-stack " (count prev-stack_))
-                                 ;toto (println "recur prev-stack 0")]
-                             (recur stacks_ cur-stack prev-stack-pos_ prev-stack_)
-                             )
-                           
-                           (if (< (count cur-stack) MAX_HYPO_PER_STACK)
-                             (let [_ (println "recur cur-stack > 0, count2 " (count cur-stack))
-                                   top-hypo (if (nil? prev-stack) nil (key (first prev-stack)))
-                                   cur-stack_ (extend-hypo model cur-stack top-hypo src-token)
-                                   _ (println "count3 " (count cur-stack_))]
-                               (recur (assoc stacks_ pos cur-stack_)
-                                      cur-stack_
-                                      prev-stack-pos
-                                      (rest prev-stack))
-                               )
-                             stacks_
-                             )
-                           )
-                         )
-                       )
-                )
-              )
-            )
-          )
-        )
-      )
-    )
-  )
+
+                (let [prev-stack (search-first-not-empty-prev-stack stacks pos)
+                      stack (stacks pos)
+                      stack (extend-stack stack prev-stack model src-token)
+                      stack (shave-stack stack)]
+                  (recur (rest src-sentence_) (+ pos 1) (assoc stacks pos stack)))))))))))
+                  
 
 (defn extract-best-path [graph]
   (let [nb-stacks (count graph)]
