@@ -59,10 +59,10 @@
     )
   )
 
-(defn extend-hypo [model stack top-hypo src-token]
+(defn extend-hypo [model stack prev-hypo src-token]
   {:pre [(map? model)
          (map? stack)
-         (or (nil? top-hypo) (= decloder.translator.Hypothesis (type top-hypo)))
+         (or (nil? prev-hypo) (= decloder.translator.Hypothesis (type prev-hypo)))
          (= java.lang.String (type src-token))]
    :post [(map? %)
           (>= (count %) (count stack))]}
@@ -70,20 +70,16 @@
   (let [src-token-id ((model :voc-src-id) src-token)]
     (loop [stack_ stack
            lex-probs ((model :lex-prob) src-token-id)
-           ];tata (println "count lex-probs" (count lex-probs))]
+           ];_   (println "Extending stack with " (count lex-probs) " hypos")]
       (if (empty? lex-probs)
         stack_
         (let [lex-prob (first lex-probs)
               trg-token-id (key lex-prob)
               lexical-prob (val lex-prob)
               trg-token ((model :voc-id-trg) trg-token-id)
-              score (score-hypothesis model trg-token lexical-prob top-hypo)]
-          (recur (assoc stack_ (Hypothesis. trg-token score top-hypo) score) (rest lex-probs))
-          )
-        )
-      )
-    )
-  )
+              score (score-hypothesis model trg-token lexical-prob prev-hypo)]
+          (recur (assoc stack_ (Hypothesis. trg-token score prev-hypo) score) (rest lex-probs)))))))
+
 
 (defn count-stacks [stacks]
   (loop [stacks_ stacks
@@ -93,11 +89,7 @@
       (let [first-key (first (sort (keys stacks_)))
             stack (stacks first-key)
             msg (str msg " " first-key ":" (count stack))]
-        (recur (dissoc stacks_ first-key) msg)
-        )
-      )
-    )
-  )
+        (recur (dissoc stacks_ first-key) msg)))))
 
 (defn shave-stack [stack]
   {:pre [(= clojure.data.priority_map.PersistentPriorityMap (type stack))]
@@ -108,6 +100,7 @@
       (reduce #(apply assoc %1 %2) (clojure.data.priority-map/priority-map) s1)) 
     stack))
 
+
 (defn search-first-not-empty-prev-stack [stacks pos]
   {:post [(map? %)]}
   
@@ -116,7 +109,8 @@
       (if (= 0 (count prev-stack))
         (recur (+ 1 prev-stack-not-empty-pos))
         prev-stack))))
-        
+
+
 (defn extend-stack [stack prev-stack model src-token]
   {:post [(>= (count %) (count stack))]}
 
@@ -138,12 +132,11 @@
 
     (let [src-token (first src-sentence_)
           src-token-id ((model :voc-src-id) src-token)]
-      (println "Main loop, pos " pos ", src-token " src-token ", count(stacks) " (count-stacks stacks) "(count src-sentence) " (count src-sentence))
+      (println "Main loop, pos " pos ", src-token " src-token ", count(stacks) " (count-stacks stacks))
       (if (nil? (stacks pos))
         (recur src-sentence_  pos (assoc stacks pos (clojure.data.priority-map/priority-map)))
 
         (if (= 0 (count src-sentence_))
-        ;(if (>= pos (count src-sentence))
           stacks
               
           (if (nil? src-token)
