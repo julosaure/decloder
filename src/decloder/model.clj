@@ -6,6 +6,7 @@
   (:import [java.util.zip GZIPInputStream])
   (:import [java.lang Math])
   (:require decloder.blm) 
+  (:require clojure.data.priority-map)
   )
 
 
@@ -15,7 +16,11 @@
 
 (def VOC_TRG "/Users/julien/workspaces/clojure/decloder/data/sentfr/fr-en.trn.trg.vcb")
 
-(def LEX_PROB "/Users/julien/workspaces/clojure/decloder/data/sentfr/fr-en.t3.final.bin")
+(def LEX_PROB "/Users/julien/workspaces/clojure/decloder/data/sentfr/fr-en.t3.final.bin") ;.pc10.bin")
+
+(def PC_FILTER_LEX_PROBS 0.1)
+
+(def MIN_KEEP_LEX_PROBS 10)
 
 ;; UTILS
 
@@ -58,11 +63,6 @@
     unserializedModel
     )
   )
-   ;  final InputStream fis = getBufferedInputStream(path);
-  ; return path.getName().endsWith(".gz") ? new ObjectInputStream(new GZIPInputStream(fis)) : new ObjectInputStream(fis);      }
-  ;final ObjectInputStream in = openObjIn(path);
-  ;final Object obj = in.readObject();
-  ;                in.close();
   
 
 (defn read-lex-prob_ [f]
@@ -79,7 +79,7 @@
               lex_prob (last tab)
               minus_log_lex_prob (- (Math/log (Double. lex_prob)))]
           (if (nil? (lex_prob_map token_src))
-            (recur (+ i 1) (.readLine rdr) (assoc! lex_prob_map token_src {token_trg minus_log_lex_prob}))
+            (recur (+ i 1) (.readLine rdr) (assoc! lex_prob_map token_src (clojure.data.priority-map/priority-map token_trg minus_log_lex_prob)))
             (recur (+ i 1) (.readLine rdr) (assoc! lex_prob_map token_src (assoc (lex_prob_map token_src) token_trg minus_log_lex_prob)))
             )
           )
@@ -103,27 +103,30 @@
     )
   )
 
-(defn startswith [str pat]
-  (loop [str_ str
-         pat_ pat]
-    (if pat_
-      (if (= (first pat_) (first str_))
-        (recur (rest str_) (rest pat_))
-        false
-        )
-      true
-      )
-    )
-  )
+(defn filter-lex-probs [lex-probs percent-filter]
+  {:post [(= (count lex-probs) (count %))]}
+  
+  (loop [filtered-lex-probs (transient {})
+         seq_ (seq lex-probs)
+         nb-lex-probs 0]
+    (if (empty? seq_)
+      (let [_ (println "Filtered model has " nb-lex-probs " lex probs for " (count filtered-lex-probs) " src tokens.")]
+        (persistent! filtered-lex-probs))
+      (let [[src-tok list-trg-probs] (first seq_) 
+            max_ (max MIN_KEEP_LEX_PROBS (int (* percent-filter (count list-trg-probs))))
+            ];_ (println src-tok ":" (count list-trg-probs) ":" max_)]
+        (recur (assoc! filtered-lex-probs src-tok (take max_ list-trg-probs)) (rest seq_) (+ nb-lex-probs max_))))))
 
+  
 (defn init-engine []
   {:post [(map? %)]}
   
   (let [[voc-src-id voc-id-src] (read-voc VOC_SRC)
         [voc-trg-id voc-id-trg] (read-voc VOC_TRG)
-        lex-prob (read-lex-prob LEX_PROB)
+        lex-probs (read-lex-prob LEX_PROB)
+        ;lex-probs (filter-lex-probs lex-probs PC_FILTER_LEX_PROBS)
         lm (decloder.blm/load-lm)]
     ;(println (sort (filter #(.startsWith (key %) "ann") voc-src)))
-    {:voc-src-id voc-src-id, :voc-id-src voc-id-src, :voc-trg-id voc-trg-id, :voc-id-trg voc-id-trg, :lex-prob lex-prob, :lm lm}
+    {:voc-src-id voc-src-id, :voc-id-src voc-id-src, :voc-trg-id voc-trg-id, :voc-id-trg voc-id-trg, :lex-prob lex-probs, :lm lm}
   ))
 
