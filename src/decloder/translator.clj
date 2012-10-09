@@ -37,12 +37,12 @@
           (if (nil? (:pred (:pred pred-hypo)))
             (let [lm-score (decloder.blm/score-ngrams (model :lm) tri-gram)]
               ;(println "tri-gram to score: " tri-gram " -> " lm-score)
-              (+ lex-prob (* 0.3 (:score pred-hypo)) (* 0.3 lm-score))
+              (+ lex-prob (* 0.3 (:score pred-hypo)) (* 0.15 lm-score))
               )
             (let [quad-gram (str (:token (:pred (:pred pred-hypo))) " " tri-gram)
                   lm-score (decloder.blm/score-ngrams (model :lm) quad-gram)]
               ;(println "4-gram to score: " quad-gram " -> " lm-score)
-              (+ lex-prob (* 0.3 (:score pred-hypo)) (* 0.3 lm-score)))))))))
+              (+ lex-prob (* 0.3 (:score pred-hypo)) (* 0.15 lm-score)))))))))
 
 (defn new-hypo [model stack lex-prob]
   {:pre [(map? stack)
@@ -69,16 +69,21 @@
 
   (let [src-token-id ((model :voc-src-id) src-token)]
     (loop [stack_ stack
-           lex-probs ((model :lex-prob) src-token-id)
-           ];_   (println "Extending stack with " (count lex-probs) " hypos")]
+           lex-probs ((model :lex-prob) src-token-id)]
       (if (empty? lex-probs)
         stack_
         (let [lex-prob (first lex-probs)
               trg-token-id (key lex-prob)
               lexical-prob (val lex-prob)
               trg-token ((model :voc-id-trg) trg-token-id)
-              score (score-hypothesis model trg-token lexical-prob prev-hypo)]
-          (recur (assoc stack_ (Hypothesis. trg-token score prev-hypo) score) (rest lex-probs)))))))
+              score (score-hypothesis model trg-token lexical-prob prev-hypo)
+              ; way faster than (last stack_)
+              worst-hypo (first (rseq stack_))]
+          (if (or (nil? worst-hypo) (< score (:score (key worst-hypo))))
+            ; we had the new hypo tho the queue only if its score is
+            ; better than the worst in the queue
+            (recur (assoc stack_ (Hypothesis. trg-token score prev-hypo) score) (rest lex-probs))
+            (recur stack_ (rest lex-probs))))))))
 
 
 (defn count-stacks [stacks]
