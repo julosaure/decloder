@@ -12,11 +12,11 @@
 
 ;; GLOBALS
 
-(def VOC_SRC "/Users/julien/workspaces/clojure/decloder/data/sentfr/fr-en.trn.src.vcb")
+(def VOC_SRC "./data/sentfr/fr-en.trn.src.vcb")
 
-(def VOC_TRG "/Users/julien/workspaces/clojure/decloder/data/sentfr/fr-en.trn.trg.vcb")
+(def VOC_TRG "./data/sentfr/fr-en.trn.trg.vcb")
 
-(def LEX_PROB "/Users/julien/workspaces/clojure/decloder/data/sentfr/fr-en.t3.final.bin") ;.pc10.bin")
+(def LEX_PROB "./data/sentfr/fr-en.t3.final.bin") ;.pc10.bin")
 
 (def PC_FILTER_LEX_PROBS 0.1)
 
